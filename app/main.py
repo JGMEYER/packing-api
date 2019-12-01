@@ -1,10 +1,10 @@
 from typing import List
 
+from pydantic import BaseModel
 from fastapi import BackgroundTasks, FastAPI, Query
 
 from .parcel.packer import calculate_smallest_needed_container
 from .parcel.parcel import ParcelMeta
-from pydantic import BaseModel
 
 
 app = FastAPI()

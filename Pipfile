@@ -9,6 +9,9 @@ verify_ssl = true
 fastapi = {extras = ["all"],version = "*"}
 uvicorn = "*"
 pydantic = "*"
+pyshipping-python3 = "*"
+pytest = "*"
+starlette = "*"
 
 [requires]
 python_version = "3.7"
