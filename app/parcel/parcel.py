@@ -18,5 +18,5 @@ class ParcelMeta:
         `Container`.
         """
         l, w, h = self.length, self.width, self.height
-        # Packages must be placed upright
+        # Parcels must be placed upright
         return [(l, w, h), (w, l, h)]
