@@ -15,6 +15,15 @@ class CompartmentMeta:
     width: float
     height: float
 
+    def can_fit(self, parcel: ParcelMeta) -> bool:
+        """Returns whether the `Compartment` can fit the `Parcel`, assuming
+        it's empty.
+        """
+        for l, w, h in parcel.legal_orientations():
+            if l <= self.length and w <= self.width and h <= self.height:
+                return True
+        return False
+
 
 @dataclass
 class ContainerMeta:
@@ -46,9 +55,8 @@ class ContainerMeta:
         `Compartments`, assuming each `Compartment` is empty.
         """
         for comp in self.compartments:
-            for l, w, h in parcel.legal_orientations():
-                if l <= comp.length and w <= comp.width and h <= comp.height:
-                    return True
+            if comp.can_fit(parcel):
+                return True
         return False
 
     def can_fit_all_individually(self, parcels: List[ParcelMeta]) -> bool:
