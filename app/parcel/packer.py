@@ -1,4 +1,5 @@
-from typing import List
+import random
+from typing import Dict, List, Tuple
 
 from .container import CONTAINER_TYPES_BY_SIZE, CompartmentMeta, ContainerMeta
 from .parcel import ParcelMeta
@@ -7,13 +8,14 @@ from .parcel import ParcelMeta
 def calculate_smallest_needed_container(parcels: List[ParcelMeta]
                                         ) -> ContainerMeta:
     """Calculates the smallest `Container` that can ship the provided
-    `Parcel`s. Returns `None` if no `Container` is found.
+    `Parcel`s. Returns None if we cannot find a `Container` that can fit all
+    the packages.
     """
     if len(parcels) == 0:
         raise ValueError("Must provide at least one Parcel")
 
     for cont in CONTAINER_TYPES_BY_SIZE:
-        # Shortcut having to use our expensive bin packing logic
+        # Shortcircuit having to use our expensive bin packing logic
         meets_basic_weight_req = cont.can_carry_all_by_weight(parcels)
         meets_basic_size_req = cont.can_fit_all_individually(parcels)
         if not meets_basic_weight_req or not meets_basic_size_req:
@@ -28,37 +30,48 @@ def calculate_smallest_needed_container(parcels: List[ParcelMeta]
 
 
 """////////////////////////////////////////////////////////////////////////////
+
+The logic below attempts to pack the `Parcel`s into multiple `Compartment`s of
+the same size. We know we can fit all `Parcel`s in the `Container` when we
+receive a list of `Container`s == 1 and no `Parcel`s remaining to pack.
+
 The code below has been taken from the pyShipping-python3 module and adapted
 to work within our constraints. Tradeoffs were also made for readability over
 performance.
 
+The original pyShipping package still does not seem to achieve perfect results
+from my tests, but as this problem is the subject of many academic papers, this
+is used as a stand-in based on the time constraints of this project.
+
+A possible change could be to try heuristics other than `volume` for sorting
+the parcels, or even adding more randomness with a fixed seed for consistency.
+Though, these suggestions would require further testing.
+
 You can read up more on the module at
 https://github.com/joncombe/pyShipping-python3.
+
 ///////////////////////////////////////////////////////////////////////////////
 """
-# TODO: move to top
-# TODO: bin -> container
-# TODO rename variables to split words with '_'
-import random
 
-# TODO: add typehints
+# TODO: add arg typehints
+# TODO: add return typehints
 
 
 class Timeout(Exception):
+    """Exception thrown when we reach either our iteration limit or our optimal
+    solution.
+    """
     pass
 
 
-def packstrip(bin, parcels):
-    """Creates a Strip which fits into bin.
-    Returns the Packages to be used in the strip, the dimensions of the strip as a 3-tuple
-    and a list of "left over" packages.
-    """
+def _pack_strip(compt: CompartmentMeta, parcels: List[ParcelMeta]):
+    """Creates a `Strip` which fits into a `Layer`"""
     strip = []
     rest = []
     strip_length = strip_width = strip_size = 0
-    while parcels and (strip_size <= bin.height):
+    while parcels and (strip_size <= compt.height):
         parcel = parcels.pop(0)
-        if strip_size + parcel.height <= bin.height:
+        if strip_size + parcel.height <= compt.height:
             strip_size += parcel.height
             strip.append(parcel)
             strip_width = max(strip_width, parcel.width)
@@ -68,123 +81,137 @@ def packstrip(bin, parcels):
     return strip, (strip_size, strip_width, strip_length), rest + parcels
 
 
-def packlayer(bin, parcels):
+def _pack_layer(compt: CompartmentMeta, parcels: List[ParcelMeta]):
+    """Creates a `Layer` which fits into a `Compartment`"""
     strips = []
-    layersize = 0
-    layerx = 0
-    layery = 0
-    binsize = bin.width  # TODO should this logically be bin.length?
+    layer_size = 0
+    layer_x = 0
+    layer_y = 0
+    compt_size = compt.width
     while parcels:
-        strip, (sizex, stripsize, sizez), rest = packstrip(bin, parcels)
-        if layersize + stripsize <= binsize:
+        strip, (size_x, strip_size, size_z), rest = _pack_strip(compt, parcels)
+        if layer_size + strip_size <= compt_size:
             parcels = rest
             if not strip:
-                # we were not able to pack anything
+                # Could not pack anything
                 break
-            layersize += stripsize
-            layerx = max([sizex, layerx])
-            layery = max([sizez, layery])
+            layer_size += strip_size
+            layer_x = max(size_x, layer_x)
+            layer_y = max(size_z, layer_y)
             strips.extend(strip)
         else:
             # Next Layer please
             parcels = strip + rest
             break
-    return strips, (layerx, layersize, layery), parcels
+    return strips, (layer_x, layer_size, layer_y), parcels
 
 
-def packbin(bin, parcels):
-    parcels.sort(key=lambda x: x.volume)
+def _pack_compt(compt: CompartmentMeta, parcels: List[ParcelMeta]):
+    """Attempt to pack `Compartment` with `Parcel`s."""
     layers = []
-    contentheigth = 0
-    contentx = 0
-    contenty = 0
-    binsize = bin.length
+    content_height = 0
+    content_x = 0
+    content_y = 0
+    compt_size = compt.length
     while parcels:
-        layer, (sizex, sizey, layersize), rest = packlayer(bin, parcels)
-        if contentheigth + layersize <= binsize:
+        layer, (size_x, size_y, layer_size), rest = _pack_layer(compt, parcels)
+        if content_height + layer_size <= compt_size:
             parcels = rest
             if not layer:
-                # we were not able to pack anything
+                # Could not pack anything
                 break
-            contentheigth += layersize
-            contentx = max([contentx, sizex])
-            contenty = max([contenty, sizey])
+            content_height += layer_size
+            content_x = max([content_x, size_x])
+            content_y = max([content_y, size_y])
             layers.extend(layer)
         else:
             # Next Bin please
             parcels = layer + rest
             break
-    return layers, (contentx, contenty, contentheigth), parcels
+    return layers, (content_x, content_y, content_height), parcels
 
 
-def packit(bin, parcels):
-    packedbins = []
-    sorted_parcels = sorted(parcels, key=lambda x: x.volume)
-    while sorted_parcels:
-        parcels_in_bin, (bin_x, bin_y, bin_z), rest = packbin(bin,
-                                                              sorted_parcels)
+def _pack_it(compt: CompartmentMeta, parcels: List[ParcelMeta]
+             ) -> Tuple[List[CompartmentMeta], List[ParcelMeta]]:
+    """Attempt to pack `Compartment` with `Parcel`s, prioritizing `Parcel`s by
+    their volume."""
+    packed_compts = []
+    remaining_parcels = sorted(parcels, key=lambda x: x.volume)
+    while remaining_parcels:
+        parcels_in_bin, (bin_x, bin_y, bin_z), rest = (
+                _pack_compt(compt, remaining_parcels))
         if not parcels_in_bin:
-            # we were not able to pack anything
+            # Could not pack anything
             break
-        packedbins.append(parcels_in_bin)
-        sorted_parcels = rest
-    # we now have a result, try to get a better result by rotating some bins
-
-    return packedbins, rest
+        packed_compts.append(parcels_in_bin)
+        remaining_parcels = rest
+    return packed_compts, rest
 
 
-def trypack(bin, parcels, bestpack):
-    bins, rest = packit(bin, parcels)
-    if len(bins) < bestpack['bincount']:  # TODO this may need to be altered
-        bestpack['bincount'] = len(bins)
-        bestpack['bins'] = bins
-        bestpack['rest'] = rest
-    if bestpack['bincount'] < 2:
+def _try_pack(compt: CompartmentMeta, parcels: List[ParcelMeta],
+              best_pack: Dict) -> int:
+    compts, rest = _pack_it(compt, parcels)
+    if len(compts) < best_pack['compt_count']:
+        best_pack['compt_count'] = len(compts)
+        best_pack['compts'] = compts
+        best_pack['rest'] = rest
+    if best_pack['compt_count'] < 2:
         raise Timeout('optimal solution found')
     return len(parcels)
 
 
-# TODO just call 'trypack' directly instead of passing a callback
-def allpermutations_helper(permuted, todo, maxcounter, callback, bin, bestpack,
-                           counter):
+def _all_permutations_helper(permuted: List[ParcelMeta],
+                             todo: List[ParcelMeta], iterlimit: int,
+                             compt: CompartmentMeta,
+                             best_pack: Dict, counter) -> int:
     if not todo:
-        return counter + callback(bin, permuted, bestpack)
+        return counter + _try_pack(compt, permuted, best_pack)
     else:
         others = todo[1:]
         parcel = todo[0]
+        # This is the most important difference between pyshipping and our
+        # algorithm. We only allow certain parcel rotations.
         for orientation in parcel.legal_orientations():
             l, w, h = orientation
+            # This could later be refactored to use tuples instead of objects
             rotated_parcel = ParcelMeta(l, w, h, parcel.weight)
-            if bin.can_fit(rotated_parcel):
-                counter = allpermutations_helper(permuted + [rotated_parcel],
-                                                 others, maxcounter, callback,
-                                                 bin, bestpack, counter)
-            if counter > maxcounter:
-                raise Timeout('more than %d iterations tries' % counter)
+            if compt.can_fit(rotated_parcel):
+                counter = _all_permutations_helper(
+                        permuted + [rotated_parcel], others, iterlimit, compt,
+                        best_pack, counter)
+            if counter > iterlimit:
+                raise Timeout("Iteration limit reached (%d)" % counter)
         return counter
 
 
-def allpermutations(todo, bin, iterlimit=5000):
+def _all_permutations(todo: List[ParcelMeta], compt: CompartmentMeta,
+                      iterlimit: int = 5000):
     random.seed(1)
     random.shuffle(todo)
-    bestpack = dict(bincount=len(todo) + 1)  # TODO this may need to be altered
+    best_pack = dict(compt_count=len(todo) + 1)
     try:
         # First try unpermuted
-        trypack(bin, todo, bestpack)
+        _try_pack(compt, todo, best_pack)
         # Now try permutations
-        allpermutations_helper([], todo, iterlimit, trypack, bin, bestpack, 0)
+        _all_permutations_helper([], todo, iterlimit, compt, best_pack, 0)
     except Timeout:
         pass
-    return bestpack['bins'], bestpack['rest']
+    return best_pack['compts'], best_pack['rest']
 
 
-def binpack(parcels: List[ParcelMeta], bin: CompartmentMeta,
-            iterlimit: int = 5000):
+def bin_pack(parcels: List[ParcelMeta], compt: CompartmentMeta,
+             iterlimit: int = 5000
+             ) -> Tuple[List[List[ParcelMeta]], List[ParcelMeta]]:
+    """Attempts to pack the `Parcel`s into multiple `Compartment`s of the same
+    size. We know we can fit all `Parcel`s in the `Container` when we receive a
+    list of `Container`s == 1 and no `Parcel`s remaining to pack.
+    """
     if not parcels:
         raise ValueError("must provide at least one package")
-    if not bin:
-        raise ValueError("bin cannot be None")
-    return allpermutations(parcels, bin, iterlimit)
+    if not compt:
+        raise ValueError("compt cannot be None")
+    compts, rest = _all_permutations(parcels, compt, iterlimit)
+    return compts, rest
 
 
 ###############################################################################
