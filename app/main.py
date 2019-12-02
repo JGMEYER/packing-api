@@ -24,7 +24,6 @@ async def vehicle_size(parcel_list: List[ParcelRequest],
                        background_tasks: BackgroundTasks):
     parcels = []
 
-    # TODO figure out relationship between ParcelMeta and ParcelRequest
     for parcel_request in parcel_list:
         for i in range(parcel_request.quantity):
             parcel = ParcelMeta(

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from dataclasses import field
 from typing import Set, Tuple
 
@@ -11,14 +12,17 @@ class ParcelMeta:
     A `Parcel` is a package of fixed dimensions and weight that can be shipped
     within a `Container`.
     """
-    length: float
-    width: float
-    height: float
-    weight: float
-    volume: float = field(init=False)
+    length: Decimal
+    width: Decimal
+    height: Decimal
+    weight: Decimal
+    volume: Decimal = field(init=False)
 
     def __post_init__(self):
-        self.volume = self.length * self.width * self.height
+        # BUG: For some reason we have to reinitialize each as Decimals for
+        # this arithmetic?
+        self.volume = (Decimal(self.length) * Decimal(self.width)
+                       * Decimal(self.height))
 
     def legal_orientations(self) -> Set[Tuple[float, float, float]]:
         """Returns all viable orientations for the `Parcel` when placed in a
