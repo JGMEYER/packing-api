@@ -9,9 +9,9 @@ based on size and weight requirements.
 
 # Design decisions and tradeoffs
 
-* 3D packing with 3 axis rotation is NP-hard, many companies invest heavily on a solution, and many papers are written on the topic - while this problem is made simpler in our case by constraining rotation, I still ended up going with a heuristic approach on `Parcel` volume, based on the existing bin-packing package, `pyShipping`.
+* ~~3D packing with 3 axis rotation is NP-hard, many companies invest heavily on a solution, and many papers are written on the topic - while this problem is made simpler in our case by constraining rotation, I still ended up going with a heuristic approach on `Parcel` volume, based on the existing bin-packing package, `pyShipping`.~~ An unfinished implementation exists in `app/parcel/packer.py`, but has since been replaced by a naiive volume check.
 * Floating point precision is an issue when we allow for non-integer dimensions of our `Parcels`, so I ended up using the Decimal class to 4 degrees of precision (see `app/__init__.py`). This use of precision has not been propagated throughout the advanced bin-packing logic, however, and would take some additional work to do so.
-* Because we can expect our bin-packing logic to take a significant amount of time with large requests and API timeouts could become an issue, we use short-polling to dispatch a job in the background instead of returning a response immediately. The API user can then poll on the status of the dispatched job.
+* Because we can expect our bin-packing logic to take a significant amount of time with large requests and API timeouts could become an issue, we use short-polling to dispatch a job in the background instead of returning a response immediately. The API user can then poll on the status of the dispatched job. NOTE: this is not an issue with the naiive volume check.
 * Job queuing is done in memory due to my time constraints. The tradeoffs with this solution are described in `main.py`.
 
 # Setup
