@@ -36,6 +36,7 @@ def _poll_vehicle_size(json):
 
 
 def _job(job_id):
+    """Helper to call job_id endpoint"""
     response = client.get(f"/job/{job_id}")
     response_json = response.json()
     assert len(response_json.keys()) == 3
@@ -51,6 +52,7 @@ def _assert_vehicle_size_response(
     expected_job_status: JobStatus,
     expected_size: str,
 ):
+    """Helper to assert result from job when requesting vehicle_size"""
     job_response = _poll_vehicle_size(json=json)
     job_response_json = job_response.json()
     assert job_response.status_code == expected_status_code
@@ -99,6 +101,6 @@ def test_very_heavy_package():
 
 
 def test_many_small_packages():
-    request = [{"length": 1, "width": 1, "height": 1, "weight": 0.001,
-                "quantity": 1}] * 48384  # perfect fit for sedan
+    request = [{"length": 2, "width": 2, "height": 1, "weight": 0.001,
+                "quantity": 12121}]  # perfect fit for sedan
     _assert_vehicle_size_response(request, 200, JobStatus.COMPLETE, "sedan")

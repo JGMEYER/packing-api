@@ -78,11 +78,10 @@ class ContainerMeta:
                 return False
         return True
 
-    # TODO add test
     def can_fit_all_by_volume(self, parcels: List[ParcelMeta]) -> bool:
         """Returns whether the `Container` can fit all `Parcels` purely by
-        volume. This response is naiive, to get the proper response, we need to
-        attempt a form of 3D bin-packing."""
+        volume. This response is naiive, to get an accurate response, we need
+        to attempt a form of 3D bin-packing."""
         parcels_volume = sum([p.volume for p in parcels])
         compartments_volume = sum([c.volume for c in self.compartments])
         return parcels_volume <= compartments_volume
@@ -96,4 +95,5 @@ SEDAN = ContainerMeta('sedan', [CompartmentMeta(24, 24, 36),
 VAN = ContainerMeta('van', [CompartmentMeta(120, 60, 60)], 70, 500)
 TRUCK = ContainerMeta('truck', [CompartmentMeta(150, 96, 84)], 500, 2000)
 
+# Ordered list of container types by relative size
 CONTAINER_TYPES_BY_SIZE = [COMPACT, SEDAN, VAN, TRUCK]

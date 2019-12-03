@@ -92,7 +92,9 @@ def _get_vehicle_size(parcels: List[ParcelMeta]):
 # TODO add docstring
 @app.post("/vehicle_size")
 async def vehicle_size(parcel_list: List[ParcelRequest],
-                       background_tasks: BackgroundTasks):
+                       background_tasks: BackgroundTasks) -> Dict:
+    """Dispatches a job to find the smallest possible vehicle to fit the
+    provided list of `Parcel`s."""
     parcels = []
     for parcel_request in parcel_list:
         for i in range(parcel_request.quantity):

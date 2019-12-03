@@ -73,6 +73,9 @@ def test_can_fit_all_individually():
 
 
 def test_can_fit_all_by_volume():
-    unit_parcel = ParcelMeta(1.1, 1.1, 1.1, 10)
-    assert TEST_CONTAINER2.can_fit_all_by_volume([unit_parcel] * 101)
-    assert not TEST_CONTAINER2.can_fit_all_by_volume([unit_parcel] * 102)
+    medium_parcel = ParcelMeta(10, 10, 10, 1)
+    unit_parcel_float = ParcelMeta(1.1, 1.1, 1.1, 1)
+    assert TEST_CONTAINER.can_fit_all_by_volume([medium_parcel] * 126)
+    assert not TEST_CONTAINER.can_fit_all_by_volume([medium_parcel] * 127)
+    assert TEST_CONTAINER2.can_fit_all_by_volume([unit_parcel_float] * 101)
+    assert not TEST_CONTAINER2.can_fit_all_by_volume([unit_parcel_float] * 102)
