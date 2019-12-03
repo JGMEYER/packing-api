@@ -3,10 +3,17 @@ from ..parcel.parcel import ParcelMeta
 
 TEST_COMPARTMENT_SMALL = CompartmentMeta(10, 20, 30)
 TEST_COMPARTMENT_LARGE = CompartmentMeta(40, 50, 60)
-TEST_CONTAINER = ContainerMeta('test',
+TEST_CONTAINER = ContainerMeta('test1',
                                [TEST_COMPARTMENT_SMALL,
                                 TEST_COMPARTMENT_LARGE],
                                max_single_weight=50, max_total_weight=100)
+
+TEST_COMPARTMENT_SMALL2 = CompartmentMeta(3.1, 2.1, 1.1)
+TEST_COMPARTMENT_LARGE2 = CompartmentMeta(6.1, 5.1, 4.1)
+TEST_CONTAINER2 = ContainerMeta('test2',
+                                [TEST_COMPARTMENT_SMALL2,
+                                 TEST_COMPARTMENT_LARGE2],
+                                max_single_weight=50, max_total_weight=100)
 
 
 def test_can_carry_all_by_weight():
@@ -63,3 +70,9 @@ def test_can_fit_all_individually():
     assert TEST_CONTAINER.can_fit_all_individually([long_parcel])
     assert not TEST_CONTAINER.can_fit_all_individually([long_parcel,
                                                         very_long_parcel])
+
+
+def test_can_fit_all_by_volume():
+    unit_parcel = ParcelMeta(1.1, 1.1, 1.1, 10)
+    assert TEST_CONTAINER2.can_fit_all_by_volume([unit_parcel] * 101)
+    assert not TEST_CONTAINER2.can_fit_all_by_volume([unit_parcel] * 102)

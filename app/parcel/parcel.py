@@ -19,8 +19,8 @@ class ParcelMeta:
     volume: Decimal = field(init=False)
 
     def __post_init__(self):
-        # BUG: For some reason we have to reinitialize each as Decimals for
-        # this arithmetic?
+        # BUG: For some reason we have to reinitialize each as Decimals to
+        # retain our precision?
         self.volume = (Decimal(self.length) * Decimal(self.width)
                        * Decimal(self.height))
 

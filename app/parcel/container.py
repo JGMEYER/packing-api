@@ -1,3 +1,5 @@
+from dataclasses import field
+from decimal import Decimal
 from typing import List
 
 from pydantic.dataclasses import dataclass
@@ -11,9 +13,16 @@ class CompartmentMeta:
 
     A `Compartment` is a storage area in a `Container` that can fit `Parcels`.
     """
-    length: float
-    width: float
-    height: float
+    length: Decimal
+    width: Decimal
+    height: Decimal
+    volume: Decimal = field(init=False)
+
+    def __post_init__(self):
+        # BUG: For some reason we have to reinitialize each as Decimals to
+        # retain our precision?
+        self.volume = (Decimal(self.length) * Decimal(self.width)
+                       * Decimal(self.height))
 
     def can_fit(self, parcel: ParcelMeta) -> bool:
         """Returns whether the `Compartment` can fit the `Parcel`, assuming
@@ -34,8 +43,8 @@ class ContainerMeta:
     """
     name: str
     compartments: List[CompartmentMeta]
-    max_single_weight: float
-    max_total_weight: float
+    max_single_weight: Decimal
+    max_total_weight: Decimal
 
     def can_carry_all_by_weight(self, parcels: List[ParcelMeta]) -> bool:
         """Returns whether the `Container` can support the weight of the
@@ -68,6 +77,15 @@ class ContainerMeta:
             if not self.can_fit(p):
                 return False
         return True
+
+    # TODO add test
+    def can_fit_all_by_volume(self, parcels: List[ParcelMeta]) -> bool:
+        """Returns whether the `Container` can fit all `Parcels` purely by
+        volume. This response is naiive, to get the proper response, we need to
+        attempt a form of 3D bin-packing."""
+        parcels_volume = sum([p.volume for p in parcels])
+        compartments_volume = sum([c.volume for c in self.compartments])
+        return parcels_volume <= compartments_volume
 
 
 # Container types

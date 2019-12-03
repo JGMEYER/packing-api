@@ -6,8 +6,10 @@ from .container import CONTAINER_TYPES_BY_SIZE, CompartmentMeta, ContainerMeta
 from .parcel import ParcelMeta
 
 
-def calculate_smallest_needed_container(parcels: List[ParcelMeta]
-                                        ) -> ContainerMeta:
+def calculate_smallest_needed_container(
+    parcels: List[ParcelMeta],
+    advanced_packing=False,
+) -> ContainerMeta:
     """Calculates the smallest `Container` that can ship the provided
     `Parcel`s. Returns None if we cannot find a `Container` that can fit all
     the packages.
@@ -26,22 +28,46 @@ def calculate_smallest_needed_container(parcels: List[ParcelMeta]
             # We already know we can fit the parcel
             return cont
 
-        # Use a greedy approach to calculate if we can fit all parcels into the
-        # compartments, starting by trying to pack all items into the first
-        # compartment, then all remaining parcels into the next, etc.
-        remaining = parcels
-        for compt in cont.compartments:
-            bins, rest = bin_pack(remaining, compt)
-            if rest:
-                break
-            if len(bins) == 1:
-                # We successfully fit all Parcels
-                return cont
-            else:
-                # Join overflow bins to get remaining packages
-                remaining = list(itertools.chain.from_iterable(bins[1:]))
+        if advanced_packing and _can_fit_container_advanced(cont, parcels):
+            return cont
+        elif not advanced_packing and _can_fit_container_simple(cont, parcels):
+            return cont
 
+    # Does not fit into any Containers
     return None
+
+
+def _can_fit_container_simple(cont: ContainerMeta, parcels: List[ParcelMeta]
+                              ) -> bool:
+    """Uses a naiive approach to determine if we can fit all Parcels in the
+    `Container` based on the `Container`s total volume."""
+    return cont.can_fit_all_by_volume(parcels)
+
+
+def _can_fit_container_advanced(cont: ContainerMeta, parcels: List[ParcelMeta]
+                                ) -> bool:
+    """Uses a more advanced 3D bin-packing solution to determine if we can fit
+    all parcels in the `Container` by testing different arrangements and
+    orientations of the boxes.
+
+    NOTE: At time of writing, this approach is not reliable and the simple
+    solution should be preferred, instead.
+    """
+    # Use a greedy approach to calculate if we can fit all parcels into the
+    # compartments, starting by trying to pack all items into the first
+    # compartment, then all remaining parcels into the next, etc.
+    remaining = parcels
+    for compt in cont.compartments:
+        bins, rest = bin_pack(remaining, compt)
+        if rest:
+            break
+        if len(bins) == 1:
+            # We successfully fit all Parcels
+            return True
+        else:
+            # Join overflow bins to get remaining packages
+            remaining = list(itertools.chain.from_iterable(bins[1:]))
+    return False
 
 
 """////////////////////////////////////////////////////////////////////////////
