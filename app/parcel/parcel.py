@@ -21,8 +21,9 @@ class ParcelMeta:
     def __post_init__(self):
         # BUG: For some reason we have to reinitialize each as Decimals to
         # retain our precision?
-        self.volume = (Decimal(self.length) * Decimal(self.width)
-                       * Decimal(self.height))
+        self.volume = (
+            Decimal(self.length) * Decimal(self.width) * Decimal(self.height)
+        )
 
     def legal_orientations(self) -> Set[Tuple[float, float, float]]:
         """Returns all viable orientations for the `Parcel` when placed in a

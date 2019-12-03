@@ -36,6 +36,38 @@ $ uvicorn app.main:app --reload
 
 You can then view the Swagger docs by navigating to `127.0.0.1/docs` in your browser.
 
+# Calling endpoints
+
+## POST /vehicle_size
+
+```
+$ curl -X POST "http://localhost:8000/vehicle_size" -H  "accept: application/json" -H  "Content-Type: application/json" -d "[{\"length\":20,\"width\":20,\"height\":30,\"weight\":60,\"quantity\":1}]"
+```
+
+Example:
+
+```
+$ curl -X POST "http://localhost:8000/vehicle_size" -H  "accept: application/json" -H  "Content-Type: application/json" -d "[{\"length\":20,\"width\":20,\"height\":30,\"weight\":60,\"quantity\":1}]"
+
+{"job_id":"c3946435-548b-47b1-9fd0-34cab0f3540f"}
+```
+
+## GET /job/{job_id}
+
+Using job_id received from vehicle_size:
+
+```
+$ curl "http://localhost:8000/job/<jobid>"
+```
+
+Example:
+
+```
+$ curl "http://localhost:8000/job/c3946435-548b-47b1-9fd0-34cab0f3540f"
+
+{"job_id":"c3946435-548b-47b1-9fd0-34cab0f3540f","job_status":1,"job_result":{"vehicle_size":"van"}}
+```
+
 # Testing
 
 Run unit tests with:

@@ -21,8 +21,9 @@ class CompartmentMeta:
     def __post_init__(self):
         # BUG: For some reason we have to reinitialize each as Decimals to
         # retain our precision?
-        self.volume = (Decimal(self.length) * Decimal(self.width)
-                       * Decimal(self.height))
+        self.volume = (
+            Decimal(self.length) * Decimal(self.width) * Decimal(self.height)
+        )
 
     def can_fit(self, parcel: ParcelMeta) -> bool:
         """Returns whether the `Compartment` can fit the `Parcel`, assuming

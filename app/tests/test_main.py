@@ -8,7 +8,7 @@ from ..main import app, JOB_FINAL_STATES, JobStatus
 client = TestClient(app)
 
 
-MAX_RESPONSE_WAIT = 2  # sec
+MAX_RESPONSE_WAIT = 1  # sec
 
 
 def _poll_vehicle_size(json):
@@ -100,7 +100,23 @@ def test_very_heavy_package():
     _assert_vehicle_size_response(request, 200, JobStatus.COMPLETE, None)
 
 
-def test_many_small_packages():
-    request = [{"length": 2, "width": 2, "height": 1, "weight": 0.001,
-                "quantity": 12121}]  # perfect fit for sedan
+def test_many_packages():
+    # Single request with large quantity
+
+    request = [{"length": 4, "width": 4, "height": 4, "weight": 0.001,
+                "quantity": 756}]  # perfect fit for sedan
     _assert_vehicle_size_response(request, 200, JobStatus.COMPLETE, "sedan")
+
+    request = [{"length": 4, "width": 4, "height": 4, "weight": 0.001,
+                "quantity": 757}]  # too much for sedan
+    _assert_vehicle_size_response(request, 200, JobStatus.COMPLETE, "van")
+
+    # Many requests with single quantity
+
+    request = [{"length": 8, "width": 8, "height": 4, "weight": 0.001,
+                "quantity": 1}] * 189  # perfect fit for sedan
+    _assert_vehicle_size_response(request, 200, JobStatus.COMPLETE, "sedan")
+
+    request = [{"length": 8, "width": 8, "height": 4, "weight": 0.001,
+                "quantity": 1}] * 190  # too much for sedan
+    _assert_vehicle_size_response(request, 200, JobStatus.COMPLETE, "van")

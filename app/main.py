@@ -84,16 +84,17 @@ class ParcelRequest(BaseModel):
 
 
 def _get_vehicle_size(parcels: List[ParcelMeta]):
-    container = packer.calculate_smallest_needed_container(parcels)
+    """Retrieves smallest needed `Container` to transport parcels and returns
+    result for `Job`."""
+    container = packer.smallest_needed_container(parcels)
     name = container.name if container else None
     return {"vehicle_size": name}
 
 
-# TODO add docstring
 @app.post("/vehicle_size")
 async def vehicle_size(parcel_list: List[ParcelRequest],
                        background_tasks: BackgroundTasks) -> Dict:
-    """Dispatches a job to find the smallest possible vehicle to fit the
+    """Dispatches a `Job` to find the smallest possible vehicle to fit the
     provided list of `Parcel`s."""
     parcels = []
     for parcel_request in parcel_list:
@@ -113,7 +114,7 @@ async def vehicle_size(parcel_list: List[ParcelRequest],
 
 @app.get("/job/{job_id}")
 async def job_status(job_id: str = Path(..., regex=JOB_ID_REGEX)):
-    """Retrieves the specified job from the queue."""
+    """Retrieves the specified `Job` from the queue."""
     if job_id not in jobs:
         raise HTTPException(status_code=404, detail="Job not found")
     job = jobs[job_id]

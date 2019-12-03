@@ -6,9 +6,9 @@ from .container import CONTAINER_TYPES_BY_SIZE, CompartmentMeta, ContainerMeta
 from .parcel import ParcelMeta
 
 
-def calculate_smallest_needed_container(
+def smallest_needed_container(
     parcels: List[ParcelMeta],
-    advanced_packing=False,
+    advanced_packing: bool = False
 ) -> ContainerMeta:
     """Calculates the smallest `Container` that can ship the provided
     `Parcel`s. Returns None if we cannot find a `Container` that can fit all
@@ -95,9 +95,6 @@ https://github.com/joncombe/pyShipping-python3.
 
 ///////////////////////////////////////////////////////////////////////////////
 """
-
-# TODO: add arg typehints
-# TODO: add return typehints
 
 
 class Timeout(Exception):
@@ -193,6 +190,7 @@ def _pack_it(compt: CompartmentMeta, parcels: List[ParcelMeta]
 
 def _try_pack(compt: CompartmentMeta, parcels: List[ParcelMeta],
               best_pack: Dict) -> int:
+    """Perform a basic best-attempt pack"""
     compts, rest = _pack_it(compt, parcels)
     if len(compts) < best_pack['compt_count']:
         best_pack['compt_count'] = len(compts)
@@ -207,6 +205,7 @@ def _all_permutations_helper(permuted: List[ParcelMeta],
                              todo: List[ParcelMeta], iterlimit: int,
                              compt: CompartmentMeta,
                              best_pack: Dict, counter) -> int:
+    """Attempt to pack `Parcel`s using all possible orientations"""
     if not todo:
         return counter + _try_pack(compt, permuted, best_pack)
     else:
@@ -230,6 +229,8 @@ def _all_permutations_helper(permuted: List[ParcelMeta],
 def _all_permutations(todo: List[ParcelMeta], compt: CompartmentMeta,
                       iterlimit: int = 5000
                       ) -> Tuple[List[List[ParcelMeta]], List[ParcelMeta]]:
+    """Attempt to find a basic best-attempt pack, followed by a pack using all
+    `Parcel`s' orientations"""
     random.seed(1)
     random.shuffle(todo)
     best_pack = dict(compt_count=len(todo) + 1)

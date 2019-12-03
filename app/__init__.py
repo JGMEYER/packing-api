@@ -1,4 +1,5 @@
 import decimal
 
 # Set decimal precision
-decimal.getcontext().prec = 4
+# WARNING: Keep in mind this also affects the precision of very large numbers
+decimal.getcontext().prec = 10
